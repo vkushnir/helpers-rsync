@@ -1,0 +1,16 @@
+# Git internals (rsync does not skip this automatically)
+.git/
+
+# IDE
+.idea/
+
+# Vim swap files
+*.swp
+*.swo
+
+# Sync scripts and rsync filter (local helpers, not part of the project)
+.rsync-filter
+
+# macOS
+.DS_Store
+._*
