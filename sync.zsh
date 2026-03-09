@@ -3,15 +3,17 @@
 # Called by pull.zsh and push.zsh (which supply defaults),
 # or directly when you need full control over paths.
 #
-# Usage: ./sync.zsh <src> <dst>
+# Usage: ./sync.zsh <src> <dst> [filter]
+#   filter — optional path to .rsync-filter file.
+#            If omitted, searched next to the script (symlink-aware).
 
 set -euo pipefail
 
 # ---------------------------------------------------------------------------
-# Args — both are mandatory, no defaults here
+# Args
 # ---------------------------------------------------------------------------
-if [[ $# -ne 2 ]]; then
-    print -P "%F{red}[ERROR]%f Usage: ${0:t} <src> <dst>" >&2
+if [[ $# -lt 2 || $# -gt 3 ]]; then
+    print -P "%F{red}[ERROR]%f Usage: ${0:t} <src> <dst> [filter]" >&2
     exit 1
 fi
 
@@ -38,16 +40,23 @@ info "SRC → $SRC"
 info "DST → $DST"
 print ""
 
-# Locate .rsync-filter: check the symlink's own directory first,
-# then the real script's directory (:A resolves all symlinks).
-# Kept separate from .gitignore so sync.*/pull.*/push.* are copied normally
-# (they're git-ignored but belong in the working copy on both sides).
-_LINK_DIR="${0:h:A}"   # absolute dir of the symlink (or script itself)
-_REAL_DIR="${0:A:h}"   # absolute dir of the resolved real file
+# Locate .rsync-filter.
+# Priority:
+#   1. Third argument — explicit path passed by caller (pull.zsh / push.zsh).
+#   2. Symlink's own directory (${0:h:A}) — direct call via project symlink.
+#   3. Real script's directory (${0:A:h}) — direct call of the real file.
+# Kept separate from .gitignore so sync.*/pull.*/push.* are synced normally.
+if [[ $# -eq 3 ]]; then
+    FILTER="$3"
+    [[ -f "$FILTER" ]] || die "Filter file not found: $FILTER"
+else
+    _LINK_DIR="${0:h:A}"   # absolute dir of the symlink (or script itself)
+    _REAL_DIR="${0:A:h}"   # absolute dir of the resolved real file
 
-if   [[ -f "${_LINK_DIR}/.rsync-filter" ]]; then FILTER="${_LINK_DIR}/.rsync-filter"
-elif [[ -f "${_REAL_DIR}/.rsync-filter" ]]; then FILTER="${_REAL_DIR}/.rsync-filter"
-else die ".rsync-filter not found in ${_LINK_DIR} or ${_REAL_DIR}"
+    if   [[ -f "${_LINK_DIR}/.rsync-filter" ]]; then FILTER="${_LINK_DIR}/.rsync-filter"
+    elif [[ -f "${_REAL_DIR}/.rsync-filter" ]]; then FILTER="${_REAL_DIR}/.rsync-filter"
+    else die ".rsync-filter not found in ${_LINK_DIR} or ${_REAL_DIR}"
+    fi
 fi
 
 rsync -av \

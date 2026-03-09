@@ -28,4 +28,4 @@ DST=$(grep '^# @dst:' "$FILTER" | sed 's|^# @dst:[ ]*||')
 [[ -n "$SRC" ]] || die "# @src: not found in $FILTER"
 [[ -n "$DST" ]] || DST="$FILTER_DIR"
 
-exec "${0:A:h}/sync.zsh" "$DST" "$SRC"
+exec "${0:A:h}/sync.zsh" "$DST" "$SRC" "$FILTER"
