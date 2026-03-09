@@ -38,11 +38,17 @@ info "SRC → $SRC"
 info "DST → $DST"
 print ""
 
-# Exclude rules are read from .rsync-filter next to this script.
+# Locate .rsync-filter: check the symlink's own directory first,
+# then the real script's directory (:A resolves all symlinks).
 # Kept separate from .gitignore so sync.*/pull.*/push.* are copied normally
 # (they're git-ignored but belong in the working copy on both sides).
-FILTER="${0:A:h}/.rsync-filter"
-[[ -f "$FILTER" ]] || die "Filter file not found: $FILTER"
+_LINK_DIR="${0:h:A}"   # absolute dir of the symlink (or script itself)
+_REAL_DIR="${0:A:h}"   # absolute dir of the resolved real file
+
+if   [[ -f "${_LINK_DIR}/.rsync-filter" ]]; then FILTER="${_LINK_DIR}/.rsync-filter"
+elif [[ -f "${_REAL_DIR}/.rsync-filter" ]]; then FILTER="${_REAL_DIR}/.rsync-filter"
+else die ".rsync-filter not found in ${_LINK_DIR} or ${_REAL_DIR}"
+fi
 
 rsync -av \
     --delete \
